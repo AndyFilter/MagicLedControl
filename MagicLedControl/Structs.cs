@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
 
 
 namespace MagicLedControl
@@ -16,7 +12,7 @@ namespace MagicLedControl
         public class UserData
         {
             public List<MagicStructs.DeviceInfo> Devices { get; set; } = new List<MagicStructs.DeviceInfo>();
-            public Dictionary<string, SimpleColor> SavedColor { get; set; } = new Dictionary<string, SimpleColor> ();
+            public Dictionary<string, SimpleColor> SavedColor { get; set; } = new Dictionary<string, SimpleColor>();
         }
 
         public class SimpleColor

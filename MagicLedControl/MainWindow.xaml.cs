@@ -1,29 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using ColorPicker.Models;
-using System.Text.Json;
 
 namespace MagicLedControl
 {
     public partial class MainWindow : Window
     {
         public DeviceController deviceController = new DeviceController();
-        private string IP_ADDRESS = "192.168.0.206";//Currentyl static, will change on first release! Or will I? I might also forget to remove this comment...
+        private string IP_ADDRESS = "192.168.0.207";//Currentyl static, will change on first release! Or will I? I might also forget to remove this comment...
         private Color lastSelectedColor;
         private bool wasInitialized = false;
         private Timer UpdateDataMethod;//Not really used, and I dont really see a use for it either, but better to have it than sorry... right?
@@ -263,7 +253,7 @@ namespace MagicLedControl
 
             Utils.SaveUserData(currentUserData);
             ReloadSavedColorsBox();
-            if(colorSelectBox.Items.Count > 0)
+            if (colorSelectBox.Items.Count > 0)
             {
                 colorSelectBox.SelectedIndex = 0;
             }
@@ -286,7 +276,8 @@ namespace MagicLedControl
             isDisco = !isDisco;
             isCustomFunction = isDisco;
             DiscoButton.Style = (isDisco ? Resources["DeleteButton"] : Resources["NormalButton"]) as Style;
-            if (isDisco) {
+            if (isDisco)
+            {
                 await deviceController.Send(Commands.SET_DISCO_FUNCTION);
                 //await Task.Delay(200);
                 //await deviceController.Send(Commands.SET_DISCO_FUNCTION);

@@ -2,11 +2,30 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net6.0-windows7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <StartupObject>MagicLedControl.App</StartupObject>
+    <ApplicationIcon>MagicLight.ico</ApplicationIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>MagicLight.png</PackageIcon>
+    <RepositoryUrl>https://github.com/AndyFilter/MagicLedControl</RepositoryUrl>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="MagicLight.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Media\MagicLight.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="PixiEditor.ColorPicker" Version="3.1.0" />

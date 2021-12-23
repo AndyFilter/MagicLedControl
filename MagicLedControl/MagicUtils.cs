@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Media;
 
 namespace MagicLedControl
@@ -27,7 +23,7 @@ namespace MagicLedControl
 
             // And directly converted into a byte (without encoding)
             return Convert.ToByte(str, 16);
-        } 
+        }
 
         public static Color ApplyBrightnessToColor(Color color)
         {

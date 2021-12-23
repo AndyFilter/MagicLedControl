@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 using System.Windows.Media;
-using System.Net;
 
 namespace MagicLedControl
 {
@@ -44,7 +40,7 @@ namespace MagicLedControl
 
         public void Send(string message)
         {
-            if(client.Connected && client != null && stream != null)
+            if (client.Connected && client != null && stream != null)
             {
                 Byte[] data = System.Text.Encoding.ASCII.GetBytes(message);
                 byte[] dataWithChecksum = new byte[data.Length + 1];
@@ -116,7 +112,7 @@ namespace MagicLedControl
                     Trace.WriteLine(ex);
                     return null;
                 }
-                if(client != null && client.Connected)
+                if (client != null && client.Connected)
                     stream = client.GetStream();
                 else
                     return null;
@@ -124,7 +120,7 @@ namespace MagicLedControl
 
             var res = await Send(Commands.REQUEST_DATA);
 
-            if(!res)
+            if (!res)
                 return null;
 
             var data = new byte[14];
@@ -150,7 +146,7 @@ namespace MagicLedControl
         public void SetCustomFunction(MagicStructs.Function customFunc)
         {
             var byteColors = new byte[16];
-            foreach(Color color in customFunc.colors)
+            foreach (Color color in customFunc.colors)
             {
 
             }
