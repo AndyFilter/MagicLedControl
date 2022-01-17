@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net.NetworkInformation;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Media;
@@ -23,6 +24,7 @@ namespace MagicLedControl
                 }
                 var fileText = File.ReadAllText(Structs.UserDataFile, Encoding.UTF8);
                 var data = JsonSerializer.Deserialize<Structs.UserData>(fileText);
+                data.Devices.ForEach(d => d.PingOutcome = 0);
                 return data;
             }
             catch (Exception ex)
@@ -76,6 +78,24 @@ namespace MagicLedControl
             cleanColor.G = Convert.ToByte(Math.Floor(color.RGB_G));
             cleanColor.B = Convert.ToByte(Math.Floor(color.RGB_B));
             return cleanColor;
+        }
+
+        public static string GetNetworkGatewayAddress()
+        {
+            string ip = null;
+
+            foreach (NetworkInterface f in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (f.OperationalStatus == OperationalStatus.Up)
+                {
+                    foreach (GatewayIPAddressInformation d in f.GetIPProperties().GatewayAddresses)
+                    {
+                        ip = d.Address.ToString();
+                    }
+                }
+            }
+
+            return ip;
         }
     }
 }

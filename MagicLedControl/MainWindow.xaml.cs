@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -13,12 +14,14 @@ namespace MagicLedControl
     public partial class MainWindow : Window
     {
         public DeviceController deviceController = new DeviceController();
-        private string IP_ADDRESS = "192.168.0.207";//Currentyl static, will change on first release! Or will I? I might also forget to remove this comment...
+        private string selectedDeviceIp = "";
         private Color lastSelectedColor;
         private bool wasInitialized = false;
-        private Timer UpdateDataMethod;//Not really used, and I dont really see a use for it either, but better to have it than sorry... right?
+        private Timer? UpdateDataMethod;//Not really used, and I dont really see a use for it either, but better to have it than sorry... right?
         private bool isDisco = false, isCustomFunction = false;
-        private Structs.UserData currentUserData = new Structs.UserData();
+        public Structs.UserData currentUserData = new Structs.UserData();
+        private Controls.AddDeviceWindow? newDeviceWindow;
+        public long lastSuccessfulMessageTime = 0;
 
         public MainWindow()
         {
@@ -29,23 +32,37 @@ namespace MagicLedControl
                 currentUserData = _tempUserData;
                 if (currentUserData.Devices.Count <= 0 || currentUserData.Devices[0] == null)
                 {
-                    Trace.WriteLine("Adding new device");
-                    currentUserData.Devices.Add(new MagicStructs.DeviceInfo("Led Device", IP_ADDRESS));
+                    //No devices found... Do something funny.
                 }
                 else
                 {
-                    IP_ADDRESS = currentUserData.Devices[0].Address;
+                    selectedDeviceIp = currentUserData.Devices[0].Address;
+                    foreach (var device in currentUserData.Devices)
+                    {
+                        var devItem = new Controls.DeviceListItem(device);
+
+                        devicesBox.Items.Add(devItem);
+                    }
+                    devicesBox.SelectedIndex = 0;
+                    PingAllDevices();
                 }
                 if (currentUserData.SavedColor.Count > 0)
                 {
                     ReloadSavedColorsBox();
                 }
-                //currentUserData.deviceInfo = new MagicStructs.DeviceInfo() { address = IP_ADDRESS, name = "Krzyś" };
             }
             InitializeDevice();
-            //Thread.Sleep(1000);
-            //deviceController.Send(payload);
-            //deviceController.Send(Commands.TURN_ON);
+        }
+
+        private async void PingAllDevices()
+        {
+            for (int i = 0; i < devicesBox.Items.Count; i++)
+            {
+                var device = devicesBox.Items.GetItemAt(i) as Controls.DeviceListItem;
+                var ping = await MagicUtils.FullPingDeviceAsync(device.deviceInfo.Address);
+                device.deviceInfo.PingOutcome = ping;
+                device.UpdateDeviceLabelColor();
+            }
         }
 
         private void ReloadSavedColorsBox()
@@ -85,10 +102,18 @@ namespace MagicLedControl
         public async void SetLedPowerState(bool newState)
         {
             Trace.WriteLine("the leds are now: " + (newState ? "On" : "Off"));
-            var ct = await deviceController.SetPowerState(newState);
-            await Task.Delay(500);
-            if (ct.CanBeCanceled)
-                ct.WaitHandle.Close();
+            try
+            {
+                await deviceController.SetPowerState(newState);
+
+                //await Task.Delay(500);
+                //if (ct.CanBeCanceled)
+                //    ct.WaitHandle.Close();
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex.Message);
+            }
         }
 
         private void OnColorChanged(object sender, RoutedEventArgs e)
@@ -109,10 +134,12 @@ namespace MagicLedControl
             }
         }
 
-        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        protected override async void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
-            deviceController.client?.Close();
-            deviceController.stream?.Close();//Should close it self when closing the program, but you never know.
+            if (deviceController != null)
+            {
+                deviceController.Disconnect();
+            }
             Application.Current.Shutdown();
         }
 
@@ -127,11 +154,12 @@ namespace MagicLedControl
 
         private async void InitializeDevice()
         {
-            await deviceController.Connect(IP_ADDRESS, "");
+            if (selectedDeviceIp.Length < 1) return;
+            await deviceController.Connect(selectedDeviceIp);
             //SetControllerData();
             UpdateDataMethod = new System.Threading.Timer((e) =>
             {
-                Trace.WriteLine("Retrying connectio");
+                Trace.WriteLine("Retrying connection");
                 SetControllerData();
             }, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
 
@@ -140,16 +168,44 @@ namespace MagicLedControl
 
         private async void SetControllerData()
         {
+            //Trace.WriteLine($"Message info lsm: {lastSuccessfulMessageTime}  time now: {DateTimeOffset.Now.ToUnixTimeMilliseconds()}");
+            if (lastSuccessfulMessageTime + 400 > DateTimeOffset.Now.ToUnixTimeMilliseconds())
+            {
+                Trace.WriteLine("Recent message");
+                return;
+            }
+
             var data = await deviceController.RequestControllerData();
 
             //var colorBackup = lastSelectedColor;
 
             if (data == null)
             {
-                Application.Current.Dispatcher.Invoke(new Action(() =>
-                    ConnectionStateLabel.Content = "Device Disconnected"
+                Application.Current.Dispatcher.Invoke(new Action(async () =>
+                {
+                    if (devicesBox.SelectedItem != null && (devicesBox.SelectedItem as Controls.DeviceListItem) != null)
+                    {
+                        var device = (devicesBox.SelectedItem as Controls.DeviceListItem);
+                        var ping = await MagicUtils.FullPingDeviceAsync(device.deviceInfo.Address);
+                        device.deviceInfo.PingOutcome = ping;
+                        device.UpdateDeviceLabelColor();
+                    }
+                    ConnectionStateLabel.Content = "Device Disconnected";
+                }
                 ));
                 return;
+            }
+            else
+            {
+                Application.Current.Dispatcher.Invoke(new Action(() =>
+                {
+                    if (devicesBox.SelectedItem != null && (devicesBox.SelectedItem as Controls.DeviceListItem) != null)
+                    {
+                        var device = (devicesBox.SelectedItem as Controls.DeviceListItem);
+                        device.deviceInfo.PingOutcome = MagicStructs.PingOutcome.Controller;
+                        device.UpdateDeviceLabelColor();
+                    }
+                }));
             }
 
             //wasDataJustReceived = true;
@@ -207,24 +263,6 @@ namespace MagicLedControl
             this.WindowState = WindowState.Minimized;
         }
 
-        private void MaximizeClicked(object sender, RoutedEventArgs e)
-        {
-            Button button = sender as Button;
-            switch (WindowState)
-            {
-                case WindowState.Maximized:
-                    WindowBorder.Margin = new Thickness(0);
-                    this.WindowState = WindowState.Normal;
-                    button.Content = "◻";//Bruhhh
-                    break;
-                case WindowState.Normal:
-                    WindowBorder.Margin = new Thickness(5);
-                    this.WindowState = WindowState.Maximized;
-                    button.Content = "❏";//u fr?
-                    break;
-            }
-        }
-
         private void ExitClicked(object sender, RoutedEventArgs e)
         {
             this.Close();
@@ -238,7 +276,6 @@ namespace MagicLedControl
             currentColor.A = 255;
             currentUserData.SavedColor[colorNameBox.Text] = currentColor;
 
-            //Utils.SaveUserData(new Structs.UserData() { deviceInfo = new MagicStructs.DeviceInfo() { address = "nigger", name = "faggot"} });
             Utils.SaveUserData(currentUserData);
 
             ReloadSavedColorsBox();
@@ -261,14 +298,16 @@ namespace MagicLedControl
 
         private void SavedColorsSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            var selectedLabel = (colorSelectBox.SelectedItem as Label);
-            if (selectedLabel == null) return;
-            var kvp = ((selectedLabel.DataContext) as KeyValuePair<string, Structs.SimpleColor>?);
-            if (selectedLabel.DataContext == null || kvp == null) return;
-            var selectedColor = Utils.SimpleColorToColor(kvp.Value.Value);
-            selectedColor.A = 255;
-            colorNameBox.Text = kvp.Value.Key;
-            MainColorPicker.SelectedColor = selectedColor;
+            //Earlier Used for changing the color, now useles because there is "Apply Color" button
+        }
+
+        private void DeviceAddClicked(object sender, RoutedEventArgs e)
+        {
+            if (newDeviceWindow == null || !newDeviceWindow.IsLoaded)
+            {
+                newDeviceWindow = new Controls.AddDeviceWindow();
+                newDeviceWindow.Show();
+            }
         }
 
         private async void OnDiscoButtonClicked(object sender, RoutedEventArgs e)
@@ -283,6 +322,123 @@ namespace MagicLedControl
                 //await deviceController.Send(Commands.SET_DISCO_FUNCTION);
             }
             if (!isDisco) deviceController.SetColor(lastSelectedColor);
+        }
+
+        public void SaveDevice(MagicStructs.DeviceInfo device)
+        {
+            if (device == null) return;
+
+
+            if (currentUserData.Devices.Any(d => d.Address == device.Address)) //This device is already added, so just rename it
+            {
+                var duplicate = currentUserData.Devices.First(d => d.Address == device.Address);
+                duplicate.Name = device.Name;
+            }
+            else if (currentUserData.Devices.Any(d => d.Name == device.Name)) //This device is already added, so just re-ip it
+            {
+                var duplicate = currentUserData.Devices.First(d => d.Name == device.Name);
+                duplicate.Address = device.Address;
+            }
+            else
+            {
+                currentUserData.Devices.Add(device);
+            }
+            Utils.SaveUserData(currentUserData);
+
+            AddDevice(device);
+        }
+
+        private async void SelectedDeviceChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (devicesBox.SelectedItem == null || (devicesBox.SelectedItem as Controls.DeviceListItem) == null)
+                return;
+            wasInitialized = true;
+            deviceController.Disconnect();
+            var selectedDevice = (devicesBox.SelectedItem as Controls.DeviceListItem).deviceInfo;
+            if (selectedDevice == null) return;
+            selectedDeviceIp = selectedDevice.Address;
+            if (selectedDevice.PingOutcome == MagicStructs.PingOutcome.Controller)
+            {
+                await deviceController.Connect(selectedDeviceIp);
+                SetControllerData();
+            }
+            else
+            {
+                var pingOutcome = await MagicUtils.FullPingDeviceAsync(selectedDeviceIp);
+                selectedDevice.PingOutcome = pingOutcome;
+                if (pingOutcome == MagicStructs.PingOutcome.Controller)
+                {
+                    await deviceController.Connect(selectedDeviceIp);
+                    SetControllerData();
+                }
+                else if (pingOutcome == MagicStructs.PingOutcome.Device)
+                    deviceController.Disconnect();
+            }
+            (devicesBox.SelectedItem as Controls.DeviceListItem).UpdateDeviceLabelColor();
+        }
+
+        private void removeDeviceClicked(object sender, RoutedEventArgs e)
+        {
+            if (devicesBox.SelectedItem != null)
+            {
+                if (MessageBox.Show("Are you sure you want to remove currently selected Controller?", "Waring!", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                {
+                    currentUserData.Devices.Remove((devicesBox.SelectedItem as Controls.DeviceListItem).deviceInfo);
+                    Utils.SaveUserData(currentUserData);
+                    devicesBox.Items.RemoveAt(devicesBox.SelectedIndex);
+                    if (devicesBox.Items.Count > 0)
+                    {
+                        devicesBox.SelectedIndex = 0;
+                    }
+                    devicesBox.Items.Refresh();
+                }
+            }
+        }
+
+        private void applyColorClicked(object sender, RoutedEventArgs e)
+        {
+            var selectedLabel = (colorSelectBox.SelectedItem as Label);
+            if (selectedLabel == null) return;
+            var kvp = ((selectedLabel.DataContext) as KeyValuePair<string, Structs.SimpleColor>?);
+            if (selectedLabel.DataContext == null || kvp == null) return;
+            var selectedColor = Utils.SimpleColorToColor(kvp.Value.Value);
+            selectedColor.A = 255;
+            colorNameBox.Text = kvp.Value.Key;
+            MainColorPicker.SelectedColor = selectedColor;
+        }
+
+        public async void AddDevice(MagicStructs.DeviceInfo device)
+        {
+            bool controllerPing;
+            var ping = new Ping();
+            //ping.PingCompleted += new PingCompletedEventHandler(OnPingCompleted);
+            //var reply = await ping.SendPingAsync(device.Address, 200);
+            //if(reply != null && reply.Status == IPStatus.Success)
+            //    controllerPing = await DeviceController.PingDevice(device.Address);
+            //else
+            //    controllerPing = false;
+            var reply = await MagicUtils.FullPingDeviceAsync(device.Address);
+
+            for (int i = 0; i < devicesBox.Items.Count; i++)
+            {
+                var item = devicesBox.Items.GetItemAt(i) as Controls.DeviceListItem;
+                if ((item.deviceInfo).Address == device.Address)
+                {
+                    item.deviceInfo = device;
+                    devicesBox.Items.Refresh();
+                    return;
+                }
+                if ((item.deviceInfo).Name == device.Name)
+                {
+                    item.deviceInfo = device;
+                    devicesBox.Items.Refresh();
+                    return;
+                }
+            }
+
+            var deviceListItem = new Controls.DeviceListItem(device);
+
+            devicesBox.Items.Add(deviceListItem);
         }
     }
 }

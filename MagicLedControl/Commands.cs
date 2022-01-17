@@ -18,5 +18,18 @@
             0x02, 0x03, 0x00, 0x01, 0x02, 0x03, 0x00, 0x01, 0x02, 0x03, 0x00, 0x01, 0x02, 0x03, 0x00, 0x01, 0x02, 0x03, 0x00, 0x01, 0x02, 0x03, 0x00, 0x01, 0x3B, 0xFF, 0x0F };
 
         public static readonly byte[] REQUEST_DATA = new byte[] { 0x81, 0x8A, 0x8B }; //This command requests data from the controller Refer to Stucts.Controller for more info
+
+        public static readonly string DISCOVERY_MESSAGE = "HF-A11ASSISTHREAD"; //also:  48 46 2d 41 31 31 41 53 53 49 53 54 48 52 45 41 44
+        /*
+         * Discovery Conversation:
+         * 
+        Message (what the phone app sends):
+            HF-A11ASSISTHREAD - contents
+
+        Disocovery Response:
+            192.168.0.*, - device IP
+            16A6BDEF677D, - device Mac
+            AK001-ZJ2101 - device Code (Always the same? I think so)
+        */
     }
 }

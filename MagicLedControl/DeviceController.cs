@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
+using System.Text;
+using System.Collections.Generic;
+using System.Net;
 
 namespace MagicLedControl
 {
@@ -11,14 +15,16 @@ namespace MagicLedControl
         public TcpClient client = new TcpClient();
         public NetworkStream stream;
         string Address = "";
-        int Port = 5577;
+        static int Port = 5577, UDP_PORT = 48899;
 
-        public async Task Connect(String server, String message)
+        public async Task Connect(string server)
         {
+            Disconnect();
             try
             {
                 //Initialize the connection with the device;
                 Address = server;
+                client = new TcpClient();
                 await client.ConnectAsync(server, Port);
                 stream = client.GetStream();
 
@@ -38,6 +44,28 @@ namespace MagicLedControl
             //Console.Read();
         }
 
+        public void Disconnect()
+        {
+            if (client != null && client.Connected)
+            {
+                try
+                {
+                    //stream.WriteAsync(new byte[1] {0x0});
+                    stream.Close();
+                    client.Close();
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine(ex.Message);
+                }
+            }
+        }
+
+        public static async Task<bool> PingDevice(string address)//Returns true if it is a LED controller
+        {
+            return await new Pinger(address).Ping();
+        }
+
         public void Send(string message)
         {
             if (client.Connected && client != null && stream != null)
@@ -46,7 +74,7 @@ namespace MagicLedControl
                 byte[] dataWithChecksum = new byte[data.Length + 1];
                 data.CopyTo(dataWithChecksum, 0);
                 dataWithChecksum[dataWithChecksum.Length - 1] = MagicUtils.CalculateChecksum(data); //Always last byte of the message is a checksum
-                stream.Write(dataWithChecksum, 0, dataWithChecksum.Length);
+                //stream.Write(dataWithChecksum, 0, dataWithChecksum.Length);
                 Trace.WriteLine(("Sent: {0}", message));
             }
         }
@@ -62,29 +90,38 @@ namespace MagicLedControl
                 await stream.WriteAsync(dataWithChecksum, 0, dataWithChecksum.Length);
 
                 Trace.WriteLine(($"Sent: {BitConverter.ToString(dataWithChecksum)}"));
+                App.Current.Dispatcher.Invoke(new Action(() =>
+                (App.Current.MainWindow as MainWindow).lastSuccessfulMessageTime = DateTimeOffset.Now.ToUnixTimeMilliseconds()
+                ));
                 return true;
             }
             else
                 return false;
         }
 
-        public async Task<System.Threading.CancellationToken> SetPowerState(bool isOn)
+        public async /*Task<System.Threading.CancellationToken>*/ Task SetPowerState(bool isOn)
         {
+            bool powerResult = false;
             if (isOn)
             {
-                await Send(Commands.TURN_ON);
+                powerResult = await Send(Commands.TURN_ON);
             }
             else
             {
-                await Send(Commands.TURN_OFF);
+                powerResult = await Send(Commands.TURN_OFF);
             }
 
-            var data = new byte[4];
-            var CT = new System.Threading.CancellationToken();
+            if (!powerResult) return;
 
-            await stream.ReadAsync(data, CT);
-            Trace.WriteLine("Received: " + BitConverter.ToString(data) + " after changing the power state");
-            return CT;
+            if (stream != null)
+            {
+                stream.ReadTimeout = 500;
+                var data = new byte[4];
+
+                await stream.ReadAsync(data);
+                Trace.WriteLine("Received: " + BitConverter.ToString(data) + " after changing the power state");
+            }
+            return;
         }
 
         public async void SetColor(Color color)
@@ -101,46 +138,59 @@ namespace MagicLedControl
 
         async public Task<MagicStructs.Controller> RequestControllerData()
         {
-            if (client == null || !client.Connected)
+            try
             {
-                try
+                if (stream != null)
+                    await stream.FlushAsync();
+                if (client == null || !client.Connected)
                 {
-                    await client.ConnectAsync(Address, Port);
-                }
-                catch (Exception ex)
-                {
-                    Trace.WriteLine(ex);
                     return null;
+                    //try
+                    //{
+                    //    await Connect(Address);
+                    //}
+                    //catch (Exception ex)
+                    //{
+                    //    Trace.WriteLine(ex);
+                    //    return null;
+                    //}
+                    //if (client != null && client.Connected)
+                    //    stream = client.GetStream();
+                    //else
+                    //    return null;
                 }
-                if (client != null && client.Connected)
-                    stream = client.GetStream();
-                else
+
+                var res = await Send(Commands.REQUEST_DATA);
+
+                if (!res)
                     return null;
+
+                await Task.Delay(200);
+
+                var data = new byte[14];
+                Int32 bytes = await stream.ReadAsync(data, 0, data.Length);
+
+                var controller = new MagicStructs.Controller();
+                Color dataColor;
+                dataColor.R = data[6];
+                dataColor.G = data[7];
+                dataColor.B = data[8];
+                controller.currentColor = dataColor;
+                controller.powerState = data[2] == 0x23 ? true : false;
+                controller.modelVersion = data[1];
+                controller.firmwareVersion = data[10];
+                controller.functionSpeed = 32 - Convert.ToInt32(data[5]);
+                controller.functionMode = data[3];
+
+                //string responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                Trace.WriteLine(("Received: {0}", BitConverter.ToString(data)));
+                return controller;
             }
-
-            var res = await Send(Commands.REQUEST_DATA);
-
-            if (!res)
+            catch(Exception ex)
+            {
                 return null;
-
-            var data = new byte[14];
-            Int32 bytes = await stream.ReadAsync(data, 0, data.Length);
-
-            var controller = new MagicStructs.Controller();
-            Color dataColor;
-            dataColor.R = data[6];
-            dataColor.G = data[7];
-            dataColor.B = data[8];
-            controller.currentColor = dataColor;
-            controller.powerState = data[2] == 0x23 ? true : false;
-            controller.modelVersion = data[1];
-            controller.firmwareVersion = data[10];
-            controller.functionSpeed = 32 - Convert.ToInt32(data[5]);
-            controller.functionMode = data[3];
-
-            //string responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
-            Trace.WriteLine(("Received: {0}", BitConverter.ToString(data)));
-            return controller;
+                Trace.WriteLine(ex.Message);
+            }
         }
 
         public void SetCustomFunction(MagicStructs.Function customFunc)
@@ -148,7 +198,54 @@ namespace MagicLedControl
             var byteColors = new byte[16];
             foreach (Color color in customFunc.colors)
             {
+                //TO BE IMPLEMENTED!
+            }
+        }
 
+        private class Pinger
+        {
+            public string address;
+            private static int UDP_PORT = 48899;
+            private UdpClient udpClient;
+            private IPEndPoint udpEndPoint;
+
+            public Pinger(string address)
+            {
+                this.address = address;
+
+                udpClient = new UdpClient(address, UDP_PORT);//This line establishes the connection
+                udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                Trace.WriteLine("Commecting to: " + address);
+                udpEndPoint = new(IPAddress.Parse(address), UDP_PORT);
+            }
+
+            public async Task<bool> Ping()
+            {
+                try
+                {
+                    if (!udpClient.Client.Connected) return false;
+                    var message = System.Text.Encoding.Default.GetBytes(Commands.DISCOVERY_MESSAGE);
+                    
+                    udpClient.Send(message, message.Length);
+                    udpClient.Client.ReceiveTimeout = 200;//works for me, but with shitty wifi or something might not be so good
+                    byte[] data = udpClient.Receive(ref udpEndPoint);
+                    string response = System.Text.Encoding.ASCII.GetString(data, 0, data.Length);
+                    Trace.WriteLine("Message received:" + response);
+
+                    udpClient.Close();
+
+                    if (response.Contains("AK001-ZJ2101"))
+                        return true;
+
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    udpClient.Close();
+                    Trace.WriteLine(ex.Message);
+                    return false;
+                }
+                return false;
             }
         }
     }

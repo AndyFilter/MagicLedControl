@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
+using System.Net.NetworkInformation;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Media;
 
 namespace MagicLedControl
@@ -31,6 +35,26 @@ namespace MagicLedControl
             var newColor = color;
             newColor = Color.Multiply(newColor, brightness / 255f); //multiplies Color by the Alpha channel, this is just how the maf...(rly? its 2022...) how the controller works.
             return newColor;
+        }
+
+        public static async Task<MagicStructs.PingOutcome> FullPingDeviceAsync(string address, int timeOut = 400)
+        {
+            bool controllerPing;
+            var ping = new Ping();
+            //ping.PingCompleted += new PingCompletedEventHandler(OnPingCompleted);
+            var reply = await ping.SendPingAsync(address, timeOut);
+            MagicStructs.PingOutcome result = await Task.Run(async () =>
+            {
+                if (reply != null && reply.Status == IPStatus.Success)
+                {
+                    controllerPing = await DeviceController.PingDevice(address);
+                }
+                else
+                    return MagicStructs.PingOutcome.NoResponse;
+
+                return (controllerPing ? MagicStructs.PingOutcome.Controller : MagicStructs.PingOutcome.Device);
+            });
+            return result;
         }
     }
 }

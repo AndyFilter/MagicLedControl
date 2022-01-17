@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using System.Windows.Media;
 
 namespace MagicLedControl
@@ -31,14 +32,29 @@ namespace MagicLedControl
 
         public class DeviceInfo
         {
-            public string Name { get; set; } = "Led Controller";
-            public string Address { get; set; } = "0.0.0.0";
+            public string Name { get; set; }
+            public string Address { get; set; }
+            public PingOutcome PingOutcome { get; set; }
 
-            public DeviceInfo(string name, string address)
+            public DeviceInfo(string name, string address, PingOutcome pingOutcome)
             {
                 Name = name;
                 Address = address;
+                PingOutcome = pingOutcome;
             }
+
+            public static DeviceInfo Clone(DeviceInfo deviceInfo)
+            {
+                var dev = new DeviceInfo(deviceInfo.Name, deviceInfo.Address, deviceInfo.PingOutcome);
+                return dev;
+            }
+        }
+
+        public enum PingOutcome
+        {
+            NoResponse,
+            Device,
+            Controller
         }
     }
 }

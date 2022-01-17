@@ -1,0 +1,69 @@
+﻿<Window x:Class="MagicLedControl.Controls.AddDeviceWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MagicLedControl.Controls"
+        mc:Ignorable="d"
+        Title="AddDeviceWindow" Height="180" Width="420" Background="Transparent" AllowsTransparency="True" WindowStyle="None" ResizeMode="NoResize" Topmost="True">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CornerRadius="15" UseAeroCaptionButtons="False" CaptionHeight="0"/>
+    </WindowChrome.WindowChrome>
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/ColorPicker;component/Styles/DefaultColorPickerStyle.xaml" />
+                <ResourceDictionary>
+                    <ResourceDictionary.MergedDictionaries>
+                        <ResourceDictionary Source="/Styles.xaml"/>
+                    </ResourceDictionary.MergedDictionaries>
+                </ResourceDictionary>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Border x:Name="WindowBorder" Background="{DynamicResource DefaultBackground}" Style="{DynamicResource Window}">
+        <Grid>
+            <Border x:Name="TopTabBorder" VerticalAlignment="Top" CornerRadius="10,10,0,0" Background="{DynamicResource LightBackground}">
+                <Grid VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="5,0,0,0" MouseLeftButtonDown="MouseTabDrag">
+                    <Grid.Background>
+                        <SolidColorBrush Color="#00000000" Opacity="0"/>
+                    </Grid.Background>
+                    <Label Content="" VerticalAlignment="Center" HorizontalAlignment="Left" FontSize="18">
+                        <Label.Foreground>
+                            <LinearGradientBrush EndPoint="1,0" StartPoint="0,1" SpreadMethod="Reflect">
+                                <GradientStop Color="#FFF05E00"/>
+                                <GradientStop Color="#FFCF12EB" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Label.Foreground>
+                    </Label>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="X" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{DynamicResource TopTabButton}" FontSize="15" FontFamily="Montserrat ExtraBold" Cursor="Hand" Height="Auto" Visibility="Visible" Click="ExitClicked"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+            <Grid Margin="5,30,5,5">
+                <StackPanel Margin="0,4,0,0">
+                    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*"/>
+                            <ColumnDefinition Width="1.1*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button x:Name="discoverDevicesButton" Content="Discover Devices" Style="{DynamicResource NormalButton}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" DockPanel.Dock="Left" Margin="0,0,10,0" Click="DiscoverDevicesClicked"/>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Vertical" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="10,0,0,0" Grid.Column="1">
+                            <Label x:Name="devsFoundLab" Content="Devices found: 0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            <Separator Margin="0,2,0,2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                            <Label x:Name="controllersFoundLab" Content="Controllers found: 0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                    <Separator Margin="0,6,0,6"/>
+                    <ComboBox x:Name="controllersbox" Margin="0,0,0,5" SelectionChanged="ControllerSelectionChanged"/>
+                    <DockPanel>
+                        <TextBox x:Name="selectedDevNameBox" Text="Device Name" Template="{DynamicResource TextBoxBaseControlTemplate}" MaxWidth="200" VerticalAlignment="Stretch" MinWidth="150" />
+                        <TextBox x:Name="selectedDevIpBox" Text="192.168.0.2" Template="{DynamicResource TextBoxBaseControlTemplate}" MaxWidth="113" InputScope="Url" MinWidth="150" />
+                        <Button x:Name="addDeviceButton" Style="{DynamicResource NormalButton}" Content="Add" HorizontalAlignment="Right" Click="DeviceAddClicked"/>
+                    </DockPanel>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

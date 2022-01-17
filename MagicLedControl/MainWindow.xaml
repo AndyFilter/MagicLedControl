@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:MagicLedControl"
         mc:Ignorable="d"
         xmlns:colorpicker="clr-namespace:ColorPicker;assembly=ColorPicker"
-        Title="MainWindow" Height="650" Width="400"
+        Title="MainWindow" Height="660" Width="400"
         Background="Transparent" AllowsTransparency="True" WindowStyle="None" ResizeMode="NoResize">
     <WindowChrome.WindowChrome>
         <WindowChrome CornerRadius="15" UseAeroCaptionButtons="False" CaptionHeight="0"/>
@@ -24,7 +24,7 @@
         </ResourceDictionary>
     </Window.Resources>
     <Border x:Name="WindowBorder" Background="{DynamicResource DefaultBackground}" Style="{DynamicResource Window}">
-        <Grid>
+        <Grid Height="670">
             <Border x:Name="TopTabBorder" VerticalAlignment="Top" CornerRadius="10,10,0,0" Background="{DynamicResource LightBackground}">
                 <Grid VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="5,0,0,0" MouseLeftButtonDown="MouseTabDrag">
                     <Grid.Background>
@@ -40,25 +40,50 @@
                     </Label>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="_" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{DynamicResource TopTabButton}" FontSize="15" FontFamily="Montserrat ExtraBold" Cursor="Hand" Height="Auto" Click="MinimalizeClicked"/>
-                        <Button Content="◻" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{DynamicResource TopTabButton}" FontSize="15" FontFamily="Montserrat ExtraBold" Cursor="Hand" Height="Auto" Click="MaximizeClicked"/>
                         <Button Content="X" HorizontalAlignment="Right" VerticalAlignment="Top" Style="{DynamicResource TopTabButton}" FontSize="15" FontFamily="Montserrat ExtraBold" Cursor="Hand" Height="Auto" Visibility="Visible" Click="ExitClicked"/>
                     </StackPanel>
                 </Grid>
             </Border>
             <StackPanel Margin="10,30,10,10">
-                <StackPanel>
+                <StackPanel Height="615.8">
                     <StackPanel>
-                        <DockPanel >
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top">
-                                <Label Content="Power :"/>
-                                <RadioButton x:Name="OnRB" Content="On" Checked="PowerOnChecked" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="4,1,0,0" VerticalContentAlignment="Center" />
-                                <RadioButton x:Name="OffRB" Content="Off" Checked="PowerOffChecked" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10,0,0,0" Padding="4,1,0,0" VerticalContentAlignment="Center"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*"/>
+                                <ColumnDefinition Width="3*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                <Label Content="Power :" FontSize="18"/>
+                                <RadioButton x:Name="OnRB" Content="On" Checked="PowerOnChecked" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="4,1,0,0" VerticalContentAlignment="Center" FontSize="18" />
+                                <RadioButton x:Name="OffRB" Content="Off" Checked="PowerOffChecked" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10,0,0,0" Padding="4,1,0,0" VerticalContentAlignment="Center" FontSize="18"/>
                             </StackPanel>
-                            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Background="#FFA0A0A0" Margin="5,2,5,2" Visibility="Collapsed"/>
-                            <Label x:Name="ConnectionStateLabel" Content="Device Disconnected" HorizontalAlignment="Right"/>
-                        </DockPanel>
+                            <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Background="#FFA0A0A0" Margin="5,2,5,2" Visibility="Collapsed" Grid.Column="1"/>
+                            <Grid DockPanel.Dock="Left" HorizontalAlignment="Stretch" Grid.Column="1">
+                                <Label x:Name="ConnectionStateLabel" Content="Device Disconnected" HorizontalAlignment="Right" HorizontalContentAlignment="Right" Margin="0,0,5,0" Visibility="Collapsed"/>
+                                <ComboBox x:Name="devicesBox" DockPanel.Dock="Left" Margin="0,0,50,0" SelectionChanged="SelectedDeviceChanged"/>
+                                <Button x:Name="addDeviceButton" Style="{DynamicResource NormalButton}" HorizontalAlignment="Right" VerticalAlignment="Center" Width="22" Height="22" Padding="1,0,1,0" VerticalContentAlignment="Top" HorizontalContentAlignment="Center" DockPanel.Dock="Left" Click="DeviceAddClicked">
+                                    <Button.Content>
+                                        <Label Content="+" VerticalAlignment="Top" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Padding="2,0,2,0" FontSize="28" RenderTransformOrigin="0.5,0.5">
+                                            <Label.RenderTransform>
+                                                <TransformGroup>
+                                                    <ScaleTransform/>
+                                                    <SkewTransform/>
+                                                    <RotateTransform/>
+                                                    <TranslateTransform Y="-5"/>
+                                                </TransformGroup>
+                                            </Label.RenderTransform>
+                                        </Label>
+                                    </Button.Content>
+                                </Button>
+                                <Button x:Name="removeDeviceButton" Style="{DynamicResource DeleteButton}" HorizontalAlignment="Right" VerticalAlignment="Center" Width="22" Height="22" Padding="0,2,0,0" VerticalContentAlignment="Top" HorizontalContentAlignment="Center" DockPanel.Dock="Left" Margin="0,0,25,0" Click="removeDeviceClicked">
+                                    <Button.Content>
+                                        <Label Content="✖" VerticalAlignment="Top" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Padding="2,0,2,0" FontSize="12" RenderTransformOrigin="0.5,0.5"/>
+                                    </Button.Content>
+                                </Button>
+                            </Grid>
+                        </Grid>
                     </StackPanel>
-                    <Separator/>
+                    <Separator Margin="0,4,0,4"/>
                     <StackPanel HorizontalAlignment="Stretch">
                         <Label Content="Select Color:"/>
                         <colorpicker:StandardColorPicker x:Name="MainColorPicker" ColorChanged="OnColorChanged" Style="{StaticResource DefaultColorPickerStyle}" FontFamily="Bahnschrift"/>
@@ -67,35 +92,38 @@
                     <Separator Margin="0,8,0,2"/>
                     <StackPanel>
                         <Grid Margin="0,5,0,0" Grid.Row="2">
-                        <TextBox x:Name="colorNameBox" Text="" MaxLines="1" TextWrapping="NoWrap" InputScope="FileName" Template="{DynamicResource TextBoxBaseControlTemplate}" Grid.Row="2" HorizontalAlignment="Stretch"/>
-                        <Label IsHitTestVisible="False" Content="Name Your color" VerticalAlignment="Stretch" HorizontalAlignment="Left" Margin="7,0,0,0" Opacity="0.5" VerticalContentAlignment="Center">
-                            <Label.Style>
-                                <Style TargetType="{x:Type Label}" BasedOn="{StaticResource {x:Type Label}}">
-                                    <Setter Property="Padding" Value="2"/>
-                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                    <Style.Triggers>
+                            <TextBox x:Name="colorNameBox" Text="" MaxLines="1" TextWrapping="NoWrap" InputScope="FileName" Template="{DynamicResource TextBoxBaseControlTemplate}" Grid.Row="2" HorizontalAlignment="Stretch"/>
+                            <Label IsHitTestVisible="False" Content="Name Your color" VerticalAlignment="Stretch" HorizontalAlignment="Left" Margin="7,0,0,0" Opacity="0.5" VerticalContentAlignment="Center">
+                                <Label.Style>
+                                    <Style TargetType="{x:Type Label}" BasedOn="{StaticResource {x:Type Label}}">
+                                        <Setter Property="Padding" Value="2"/>
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
                                             <DataTrigger Binding="{Binding Text, ElementName=colorNameBox}" Value="">
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Label.Style>
-                        </Label>
-                    </Grid>
-                    <DockPanel Margin="0,5,0,0">
-                        <Label Content="Select Color : " VerticalAlignment="Center"/>
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Label.Style>
+                            </Label>
+                        </Grid>
+                        <DockPanel Margin="0,5,0,0">
+                            <Label Content="Select Color : " VerticalAlignment="Center"/>
                             <ComboBox x:Name="colorSelectBox" MinWidth="140" SelectionChanged="SavedColorsSelectionChanged">
 
                             </ComboBox>
-                    </DockPanel>
-                        <Grid Margin="0,5,0,0">
+                        </DockPanel>
+                        <Grid Margin="0,6,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="5"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="5"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Button Content="Save Color" x:Name="saveColorButton" Style="{DynamicResource NormalButton}" Click="SaveColorClicked"/>
-                            <Button Content="Delete Color" x:Name="deleteColorButton" Style="{DynamicResource DeleteButton}" Grid.Column="2" Click="DeleteColorClicked"/>
+                            <Button Content="Apply Color" x:Name="applyColorbutton" Style="{DynamicResource NormalButton}" Grid.Column="2" Click="applyColorClicked" />
+                            <Button Content="Delete Color" x:Name="deleteColorButton" Style="{DynamicResource DeleteButton}" Grid.Column="4" Click="DeleteColorClicked"/>
                         </Grid>
                     </StackPanel>
                     <Separator Margin="0,7,0,2"/>
