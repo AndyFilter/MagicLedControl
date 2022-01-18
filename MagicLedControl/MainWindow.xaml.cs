@@ -60,7 +60,7 @@ namespace MagicLedControl
             {
                 var device = devicesBox.Items.GetItemAt(i) as Controls.DeviceListItem;
                 var ping = await MagicUtils.FullPingDeviceAsync(device.deviceInfo.Address);
-                device.deviceInfo.PingOutcome = ping;
+                device.deviceInfo.PingOutcome = ping.Item1;
                 device.UpdateDeviceLabelColor();
             }
         }
@@ -69,7 +69,7 @@ namespace MagicLedControl
         {
             colorSelectBox.Items.Clear();
             colorSelectBox.ItemsSource = null;
-            Trace.WriteLine("Childer in CB: " + colorSelectBox.Items.Count);
+            //Trace.WriteLine("Children in CB: " + colorSelectBox.Items.Count);
             foreach (var color in currentUserData.SavedColor)
             {
                 var label = new Label();
@@ -87,14 +87,14 @@ namespace MagicLedControl
 
         private void PowerOnChecked(object sender, RoutedEventArgs e)
         {
-            //Trace.WriteLine(e.ToString());
+            //Trace.WriteLine("Led ON checked");
             if (!wasInitialized) return;
             SetLedPowerState(true);
         }
 
         private void PowerOffChecked(object sender, RoutedEventArgs e)
         {
-            //Trace.WriteLine(e.Handled.ToString());
+            //Trace.WriteLine("Led OFF checked");
             if (!wasInitialized) return;
             SetLedPowerState(false);
         }
@@ -187,7 +187,7 @@ namespace MagicLedControl
                     {
                         var device = (devicesBox.SelectedItem as Controls.DeviceListItem);
                         var ping = await MagicUtils.FullPingDeviceAsync(device.deviceInfo.Address);
-                        device.deviceInfo.PingOutcome = ping;
+                        device.deviceInfo.PingOutcome = ping.Item1;
                         device.UpdateDeviceLabelColor();
                     }
                     ConnectionStateLabel.Content = "Device Disconnected";
@@ -203,35 +203,47 @@ namespace MagicLedControl
                     {
                         var device = (devicesBox.SelectedItem as Controls.DeviceListItem);
                         device.deviceInfo.PingOutcome = MagicStructs.PingOutcome.Controller;
+                        device.deviceInfo.lastConfiguration = data;
                         device.UpdateDeviceLabelColor();
                     }
                 }));
+                UpdateDeviceConfigUI(data);
             }
+        }
 
-            //wasDataJustReceived = true;
-
+        public void UpdateDeviceConfigUI(MagicStructs.Controller data)
+        {
             Application.Current.Dispatcher.Invoke(new Action(() =>
             {
-                Trace.WriteLine("The device powert is: " + data.powerState);
+                Trace.WriteLine("The device power is: " + data.powerState);
                 //if (OnRB.IsChecked == null || OffRB.IsChecked == null) return;
+                OnRB.Checked -= PowerOnChecked;
+                OffRB.Checked -= PowerOffChecked;
                 if (data.powerState && !OnRB.IsChecked.Value)
                     OnRB.IsChecked = true;
                 else if (!data.powerState && !OffRB.IsChecked.Value)
                     OffRB.IsChecked = true;
+                OnRB.Checked += PowerOnChecked;
+                OffRB.Checked += PowerOffChecked;
                 //OnRB.IsChecked = data.powerState;
                 isCustomFunction = data.functionMode == 0x61 ? false : true;
-                if (!isCustomFunction)
-                {
-                    isDisco = false;
-                    DiscoButton.Style = Resources["NormalButton"] as Style;
-                }
+                DiscoButton.Style = (isCustomFunction ? Resources["DeleteButton"] : Resources["NormalButton"]) as Style;
+                isDisco = isCustomFunction;
+
+                //If any custom function is running then make Disco button red
+
+                //if (!isCustomFunction)
+                //{
+                //    isDisco = false;
+                //    DiscoButton.Style = Resources["NormalButton"] as Style;
+                //}
             }
             ));
 
             var currentColor = data.currentColor;
 
             if (isCustomFunction)
-                Trace.WriteLine("Is running a custm func");
+                Trace.WriteLine("Is running a custom func");
 
             if (lastSelectedColor != currentColor && !isCustomFunction)
             {
@@ -242,7 +254,9 @@ namespace MagicLedControl
                 //MainColorPicker.SecondaryColor = currentColor;
                 Application.Current.Dispatcher.Invoke(new Action(() =>
                 {
+                    MainColorPicker.ColorChanged -= OnColorChanged;
                     MainColorPicker.SelectedColor = currentColor;
+                    MainColorPicker.ColorChanged += OnColorChanged;
                 }
                 ));
             }
@@ -250,7 +264,6 @@ namespace MagicLedControl
             Application.Current.Dispatcher.Invoke(new Action(() =>
                 ConnectionStateLabel.Content = "Device Connected" //Now that I think about I probably should place this hole method in one of these fancy "Application.Current.Dispatcher.Invoke" things...
             ));
-            //wasDataJustReceived = false;
         }
 
         private void MouseTabDrag(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -359,19 +372,29 @@ namespace MagicLedControl
             selectedDeviceIp = selectedDevice.Address;
             if (selectedDevice.PingOutcome == MagicStructs.PingOutcome.Controller)
             {
-                await deviceController.Connect(selectedDeviceIp);
-                SetControllerData();
+                var connectionStatus = await deviceController.Connect(selectedDeviceIp);
+                if (connectionStatus)
+                {
+                    if (selectedDevice.lastConfiguration != null)
+                        UpdateDeviceConfigUI(selectedDevice.lastConfiguration);
+                    SetControllerData();
+                }
             }
             else
             {
                 var pingOutcome = await MagicUtils.FullPingDeviceAsync(selectedDeviceIp);
-                selectedDevice.PingOutcome = pingOutcome;
-                if (pingOutcome == MagicStructs.PingOutcome.Controller)
+                selectedDevice.PingOutcome = pingOutcome.Item1;
+                if (pingOutcome.Item1 == MagicStructs.PingOutcome.Controller)
                 {
-                    await deviceController.Connect(selectedDeviceIp);
-                    SetControllerData();
+                    var connectionStatus = await deviceController.Connect(selectedDeviceIp);
+                    if (connectionStatus)
+                    {
+                        if (selectedDevice.lastConfiguration != null)
+                            UpdateDeviceConfigUI(selectedDevice.lastConfiguration);
+                        SetControllerData();
+                    }
                 }
-                else if (pingOutcome == MagicStructs.PingOutcome.Device)
+                else if (pingOutcome.Item1 == MagicStructs.PingOutcome.Device)
                     deviceController.Disconnect();
             }
             (devicesBox.SelectedItem as Controls.DeviceListItem).UpdateDeviceLabelColor();
@@ -422,13 +445,7 @@ namespace MagicLedControl
             for (int i = 0; i < devicesBox.Items.Count; i++)
             {
                 var item = devicesBox.Items.GetItemAt(i) as Controls.DeviceListItem;
-                if ((item.deviceInfo).Address == device.Address)
-                {
-                    item.deviceInfo = device;
-                    devicesBox.Items.Refresh();
-                    return;
-                }
-                if ((item.deviceInfo).Name == device.Name)
+                if ((item.deviceInfo).Address == device.Address || (item.deviceInfo).Name == device.Name)
                 {
                     item.deviceInfo = device;
                     devicesBox.Items.Refresh();
@@ -439,6 +456,11 @@ namespace MagicLedControl
             var deviceListItem = new Controls.DeviceListItem(device);
 
             devicesBox.Items.Add(deviceListItem);
+            if (deviceListItem != null)
+            {
+                devicesBox.SelectedItem = deviceListItem;
+                devicesBox.Items.Refresh();
+            }
         }
     }
 }

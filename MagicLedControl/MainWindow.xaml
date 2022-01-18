@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:MagicLedControl"
         mc:Ignorable="d"
         xmlns:colorpicker="clr-namespace:ColorPicker;assembly=ColorPicker"
-        Title="MainWindow" Height="660" Width="400"
+        Title="Magic Led Control" Height="660" Width="400"
         Background="Transparent" AllowsTransparency="True" WindowStyle="None" ResizeMode="NoResize">
     <WindowChrome.WindowChrome>
         <WindowChrome CornerRadius="15" UseAeroCaptionButtons="False" CaptionHeight="0"/>
@@ -119,7 +119,7 @@
                                 <ColumnDefinition Width="5"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="5"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="1.05*"/>
                             </Grid.ColumnDefinitions>
                             <Button Content="Save Color" x:Name="saveColorButton" Style="{DynamicResource NormalButton}" Click="SaveColorClicked"/>
                             <Button Content="Apply Color" x:Name="applyColorbutton" Style="{DynamicResource NormalButton}" Grid.Column="2" Click="applyColorClicked" />

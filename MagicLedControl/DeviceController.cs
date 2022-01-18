@@ -1,23 +1,20 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
-using System.Text;
-using System.Collections.Generic;
-using System.Net;
 
 namespace MagicLedControl
 {
     public class DeviceController
     {
         public TcpClient client = new TcpClient();
-        public NetworkStream stream;
+        public NetworkStream? stream;
         string Address = "";
-        static int Port = 5577, UDP_PORT = 48899;
+        static int Port = 5577;
 
-        public async Task Connect(string server)
+        public async Task<bool> Connect(string server)
         {
             Disconnect();
             try
@@ -27,17 +24,20 @@ namespace MagicLedControl
                 client = new TcpClient();
                 await client.ConnectAsync(server, Port);
                 stream = client.GetStream();
+                return true;
 
             }
             catch (ArgumentNullException e)
             {
                 Console.WriteLine(("ArgumentNullException: {0}", e));
                 Trace.WriteLine(("ArgumentNullException: {0}", e.Message));
+                return false;
             }
             catch (SocketException e)
             {
                 Console.WriteLine("SocketException: {0}", e);
                 Trace.WriteLine("SocketException: {0}", e.Message);
+                return false;
             }
 
             //Console.WriteLine("\n Press Enter to continue...");
@@ -51,7 +51,11 @@ namespace MagicLedControl
                 try
                 {
                     //stream.WriteAsync(new byte[1] {0x0});
-                    stream.Close();
+                    if (stream != null)
+                    {
+                        stream.Flush();
+                        stream.Close();
+                    }
                     client.Close();
                 }
                 catch (Exception ex)
@@ -61,7 +65,7 @@ namespace MagicLedControl
             }
         }
 
-        public static async Task<bool> PingDevice(string address)//Returns true if it is a LED controller
+        public static async Task<(bool, string)> PingDevice(string address)//Returns true if it is a LED controller
         {
             return await new Pinger(address).Ping();
         }
@@ -180,13 +184,13 @@ namespace MagicLedControl
                 controller.modelVersion = data[1];
                 controller.firmwareVersion = data[10];
                 controller.functionSpeed = 32 - Convert.ToInt32(data[5]);
-                controller.functionMode = data[3];
+                controller.functionMode = data[3]; //0x61 - static color, anything elese can be function, but its random, or at least seems like it is.
 
                 //string responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
                 Trace.WriteLine(("Received: {0}", BitConverter.ToString(data)));
                 return controller;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return null;
                 Trace.WriteLine(ex.Message);
@@ -216,36 +220,39 @@ namespace MagicLedControl
                 udpClient = new UdpClient(address, UDP_PORT);//This line establishes the connection
                 udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                 Trace.WriteLine("Commecting to: " + address);
-                udpEndPoint = new(IPAddress.Parse(address), UDP_PORT);
+                udpEndPoint = new IPEndPoint(IPAddress.Parse(address), UDP_PORT);
             }
 
-            public async Task<bool> Ping()
+            public async Task<(bool, string)> Ping()
             {
                 try
                 {
-                    if (!udpClient.Client.Connected) return false;
+                    if (!udpClient.Client.Connected) return (false, "");
                     var message = System.Text.Encoding.Default.GetBytes(Commands.DISCOVERY_MESSAGE);
-                    
+
                     udpClient.Send(message, message.Length);
-                    udpClient.Client.ReceiveTimeout = 200;//works for me, but with shitty wifi or something might not be so good
-                    byte[] data = udpClient.Receive(ref udpEndPoint);
+                    udpClient.Client.ReceiveTimeout = 800;//works for me, but with shitty wifi or something might not be so good
+                    byte[] data = udpClient.Receive(ref udpEndPoint); //NOT ASYNC
                     string response = System.Text.Encoding.ASCII.GetString(data, 0, data.Length);
-                    Trace.WriteLine("Message received:" + response);
+                    //Trace.WriteLine("Message received:" + response);
 
                     udpClient.Close();
 
                     if (response.Contains("AK001-ZJ2101"))
-                        return true;
+                    {
+                        var macAddress = response.Split(',')[1];
+                        Trace.WriteLine($"Mac address: {macAddress}");
+                        return (true, macAddress);
+                    }
 
-                    return false;
+                    return (false, "");
                 }
                 catch (Exception ex)
                 {
                     udpClient.Close();
-                    Trace.WriteLine(ex.Message);
-                    return false;
+                    //Trace.WriteLine(ex.Message);
+                    return (false, "");
                 }
-                return false;
             }
         }
     }

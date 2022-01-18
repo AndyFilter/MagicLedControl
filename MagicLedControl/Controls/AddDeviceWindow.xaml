@@ -24,7 +24,7 @@
     <Border x:Name="WindowBorder" Background="{DynamicResource DefaultBackground}" Style="{DynamicResource Window}">
         <Grid>
             <Border x:Name="TopTabBorder" VerticalAlignment="Top" CornerRadius="10,10,0,0" Background="{DynamicResource LightBackground}">
-                <Grid VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="5,0,0,0" MouseLeftButtonDown="MouseTabDrag">
+                <Grid x:Name="topTabGrid" VerticalAlignment="Top" HorizontalAlignment="Stretch" Margin="5,0,0,0">
                     <Grid.Background>
                         <SolidColorBrush Color="#00000000" Opacity="0"/>
                     </Grid.Background>
@@ -51,7 +51,7 @@
                         <Button x:Name="discoverDevicesButton" Content="Discover Devices" Style="{DynamicResource NormalButton}" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" DockPanel.Dock="Left" Margin="0,0,10,0" Click="DiscoverDevicesClicked"/>
                         <StackPanel DockPanel.Dock="Right" Orientation="Vertical" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" Margin="10,0,0,0" Grid.Column="1">
                             <Label x:Name="devsFoundLab" Content="Devices found: 0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                            <Separator Margin="0,2,0,2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                            <ProgressBar x:Name="ipScannedProgressSeparator" Margin="0,2,0,2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" RenderTransformOrigin="0,1" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{DynamicResource Secondary}" Maximum="1" SmallChange="0.01"/>
                             <Label x:Name="controllersFoundLab" Content="Controllers found: 0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Grid>

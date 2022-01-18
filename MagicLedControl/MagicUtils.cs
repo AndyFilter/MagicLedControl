@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Net.NetworkInformation;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 
@@ -37,24 +35,24 @@ namespace MagicLedControl
             return newColor;
         }
 
-        public static async Task<MagicStructs.PingOutcome> FullPingDeviceAsync(string address, int timeOut = 400)
+        public static async Task<(MagicStructs.PingOutcome, string)> FullPingDeviceAsync(string address, int timeOut = 1000)
         {
-            bool controllerPing;
+            //(MagicStructs.PingOutcome, string) result = await Task.Run(async () =>
+            //{
+            (bool, string) controllerPing;
             var ping = new Ping();
             //ping.PingCompleted += new PingCompletedEventHandler(OnPingCompleted);
             var reply = await ping.SendPingAsync(address, timeOut);
-            MagicStructs.PingOutcome result = await Task.Run(async () =>
+            if (reply != null && reply.Status == IPStatus.Success)
             {
-                if (reply != null && reply.Status == IPStatus.Success)
-                {
-                    controllerPing = await DeviceController.PingDevice(address);
-                }
-                else
-                    return MagicStructs.PingOutcome.NoResponse;
+                controllerPing = DeviceController.PingDevice(address).GetAwaiter().GetResult();
+            }
+            else
+                return (MagicStructs.PingOutcome.NoResponse, "");
 
-                return (controllerPing ? MagicStructs.PingOutcome.Controller : MagicStructs.PingOutcome.Device);
-            });
-            return result;
+            return ((controllerPing.Item1 ? MagicStructs.PingOutcome.Controller : MagicStructs.PingOutcome.Device), controllerPing.Item2);
+            //});
+            //return result;
         }
     }
 }

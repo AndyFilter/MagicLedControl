@@ -35,18 +35,25 @@ namespace MagicLedControl
             public string Name { get; set; }
             public string Address { get; set; }
             public PingOutcome PingOutcome { get; set; }
+            public string MacAddress { get; set; }
 
-            public DeviceInfo(string name, string address, PingOutcome pingOutcome)
+            [JsonIgnore]
+            public Controller? lastConfiguration { get; set; }
+
+            public DeviceInfo(string name, string address, PingOutcome pingOutcome, string macAddress)
             {
                 Name = name;
                 Address = address;
                 PingOutcome = pingOutcome;
+                MacAddress = macAddress;
             }
 
-            public static DeviceInfo Clone(DeviceInfo deviceInfo)
+            public DeviceInfo()
             {
-                var dev = new DeviceInfo(deviceInfo.Name, deviceInfo.Address, deviceInfo.PingOutcome);
-                return dev;
+                Name = "Unknown";
+                Address = "0.0.0.0";
+                MacAddress = "00000";
+                PingOutcome = 0;
             }
         }
 

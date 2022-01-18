@@ -1,12 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Net.NetworkInformation;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace MagicLedControl.Controls
 {
@@ -15,12 +16,15 @@ namespace MagicLedControl.Controls
     /// </summary>
     public partial class AddDeviceWindow : Window
     {
-        private List<Ping> Pings = new();
-        private string GatewayAddress = Utils.GetNetworkGatewayAddress();
-        private int devicesFound = 0, controllersFound = 0;
+        private static string GatewayAddress = Utils.GetNetworkGatewayAddress();
+        private string addressBase = GatewayAddress.Remove(GatewayAddress.Length - 1);
+        private int devicesFound = 0, controllersFound = 0, devicesScanned = 0;
+        private bool isScanning = false;
         public AddDeviceWindow()
         {
             InitializeComponent();
+
+            topTabGrid.MouseLeftButtonDown += MouseTabDrag;
 
             if (GatewayAddress == null)
                 MessageBox.Show("There was an error! Make sure you are connected to a internet");
@@ -38,58 +42,86 @@ namespace MagicLedControl.Controls
 
         private void DiscoverDevicesClicked(object sender, RoutedEventArgs e)
         {
-            controllersFound = devicesFound = 0;
+            if (isScanning || GatewayAddress.Length < 1) return;
+            isScanning = true;
+            controllersFound = devicesFound = devicesScanned = 0;
+            devsFoundLab.Content = $"Devices found: {devicesFound}";
+            controllersFoundLab.Content = $"Controllers found: {controllersFound}";
             controllersbox.Items.Clear();
+            DoubleAnimation animation = new DoubleAnimation((devicesScanned / 255d), TimeSpan.FromMilliseconds(20));
+            ipScannedProgressSeparator.BeginAnimation(ProgressBar.ValueProperty, animation);
+            new Thread(() =>
+            {
+                Thread.CurrentThread.IsBackground = true;
+                Discover();
+            }).Start();
+        }
 
-            var addressBase = GatewayAddress.Remove(GatewayAddress.Length - 1);
+        private async void Discover()
+        {
             //Stopwatch stopwatch = new Stopwatch();
             //stopwatch.Start();
-            for (int i = 0; i <= 255; i++)
+            Task[] tasks = new Task[256];
+            for (int i = 0; i <= 255; i++) //The async here is really bad, I had some other ideas that worked a bit better, but they looked much worse
             {
-                Application.Current.Dispatcher.Invoke(async () =>
-                {
-                    string address = $"{addressBase}{i}";
-                    try
-                    {
-                        Trace.WriteLine($"Scanning addres {address}");
-                        //var ping = new Ping();
-                        //ping.PingCompleted += new PingCompletedEventHandler(OnPingCompleted);
-                        //ping.SendAsync(address, 500, address);
-                        var pingOut = await MagicUtils.FullPingDeviceAsync(address);
-                        if (pingOut == MagicStructs.PingOutcome.Controller)
-                        {
-                            //Trace.WriteLine($"Adding: {address} message: {System.Text.Encoding.Default.GetString(e.Reply.Buffer)}");
-                            devicesFound++;
-                            devsFoundLab.Content = $"Devices found: {devicesFound}"; //Might add a Mac address to the name: easy and looks cool.
-                            controllersFound++;
-                            controllersFoundLab.Content = $"Controllers found: {controllersFound}";
-                            var label = new Label();
-                            label.Content = $"{address}";
-                            label.DataContext = new MagicStructs.DeviceInfo($"Device{controllersFound}", address, pingOut);
-                            if ((Application.Current.MainWindow as MainWindow).currentUserData.Devices.Any(d => d.Address == address))
-                                label.Foreground = Resources["GradientStartButton"] as Brush;
-                            controllersbox.Items.Add(label);
-                        }
-                        else if (pingOut == MagicStructs.PingOutcome.Device)
-                        {
-                            devicesFound++;
-                            devsFoundLab.Content = $"Devices found: {devicesFound}";
-                        }
-                        //if(address.EndsWith("255"))
-                        //{
-                        //    stopwatch.Stop();
-                        //    Trace.WriteLine($"Elapsed Discovery Time is {stopwatch.ElapsedMilliseconds} ms");
-                        //}
-                        //Pings.Add(ping);
-                    }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine($"Error while pinging {ex.Message} IP: {address}");
-                        //Clipboard.SetText(ex.Message);
-                        //MessageBox.Show(ex.Message);
-                    }
-                });
+                tasks[i] = ScanIp(i);
+            }
+            await Task.WhenAll(tasks);
+            isScanning = false;
+            //stopwatch.Stop();
+            //Trace.WriteLine($"Elapsed Discovery Time is {stopwatch.ElapsedMilliseconds} ms");
+        }
 
+        private async Task ScanIp(int i)
+        {
+            string address = $"{addressBase}{i}";
+            try
+            {
+                Trace.WriteLine($"Scanning address {address}");
+                //var ping = new Ping();
+                //ping.PingCompleted += new PingCompletedEventHandler(OnPingCompleted);
+                //ping.SendAsync(address, 500, address);
+                var pingOut = await MagicUtils.FullPingDeviceAsync(address);
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    Stopwatch stopwatch = new Stopwatch();
+                    stopwatch.Start();
+                    devicesScanned++;
+                    if (pingOut.Item1 == MagicStructs.PingOutcome.Controller)
+                    {
+                        //Trace.WriteLine($"Adding: {address} message: {System.Text.Encoding.Default.GetString(e.Reply.Buffer)}");
+                        devicesFound++;
+                        devsFoundLab.Content = $"Devices found: {devicesFound}";
+                        controllersFound++;
+                        controllersFoundLab.Content = $"Controllers found: {controllersFound}";
+                        var label = new Label();
+                        label.Content = $"{address}";
+                        label.DataContext = new MagicStructs.DeviceInfo($"Device ({pingOut.Item2})", address, pingOut.Item1, pingOut.Item2);
+                        if ((Application.Current.MainWindow as MainWindow).currentUserData.Devices.Any(d => d.Address == address))
+                            label.Foreground = Resources["GradientStartButton"] as Brush;
+                        controllersbox.Items.Add(label);
+                    }
+                    else if (pingOut.Item1 == MagicStructs.PingOutcome.Device)
+                    {
+                        devicesFound++;
+                        devsFoundLab.Content = $"Devices found: {devicesFound}";
+                    }
+                    //if (address.EndsWith("255"))
+                    //{
+                    //    stopwatch.Stop();
+                    //    Trace.WriteLine($"Elapsed Discovery Time is {stopwatch.ElapsedMilliseconds} ms");
+                    //}
+                    //Pings.Add(ping);
+                    DoubleAnimation animation = new DoubleAnimation((devicesScanned / 255d), TimeSpan.FromMilliseconds(200));
+                    ipScannedProgressSeparator.BeginAnimation(ProgressBar.ValueProperty, animation);
+                    //progressScale.ScaleX = (devicesScanned / 255d);//Math.Clamp(devicesFound / ((255d - devicesScanned) + devicesFound), 0, 1);
+                });
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"Error while pinging {ex.Message} IP: {address}");
+                //Clipboard.SetText(ex.Message);
+                //MessageBox.Show(ex.Message);
             }
         }
 
@@ -105,8 +137,9 @@ namespace MagicLedControl.Controls
         {
             if (selectedDevIpBox.Text.Length > 0 && selectedDevNameBox.Text.Length > 0)
             {
-                var device = new MagicStructs.DeviceInfo(selectedDevNameBox.Text, selectedDevIpBox.Text, await MagicUtils.FullPingDeviceAsync(selectedDevIpBox.Text));
-
+                Trace.WriteLine("Device added");
+                var fullPing = await MagicUtils.FullPingDeviceAsync(selectedDevIpBox.Text);
+                var device = new MagicStructs.DeviceInfo(selectedDevNameBox.Text, selectedDevIpBox.Text, fullPing.Item1, fullPing.Item2);
                 (Application.Current.MainWindow as MainWindow).SaveDevice(device);
             }
         }

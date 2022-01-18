@@ -8,7 +8,7 @@ using System.Windows.Media;
 
 namespace MagicLedControl
 {
-    public class Utils
+    public static class Utils
     {
         public static Structs.UserData? GetUserData()
         {
@@ -37,7 +37,7 @@ namespace MagicLedControl
 
         public static void SaveUserData(Structs.UserData userData)
         {
-            Trace.WriteLine("Saveing Data");
+            Trace.WriteLine("Saving Data");
             try
             {
                 if (!Directory.Exists(Structs.UserDataPath.FullName))
