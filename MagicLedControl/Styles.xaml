@@ -15,6 +15,7 @@
     <Color x:Key="SecondaryDarkColor">#4F4F4F</Color>
     <Color x:Key="SecondaryColor">#585858</Color>
     <Color x:Key="DefaultFontColor">#F0F0F0</Color>
+    <Color x:Key="FontColorDark">#d0d0d0</Color>
     <Color x:Key="HoverGradientStartButtonColor">#E040FB</Color>
     <Color x:Key="DefaultButtonBackgroundColor">#47D48D</Color>
     <Color x:Key="DefaultButtonBackgroundHoverColor">#589371</Color>
@@ -52,6 +53,7 @@
     <SolidColorBrush x:Key="SecondaryDark" Color="{DynamicResource SecondaryDarkColor}"/>
     <SolidColorBrush x:Key="Secondary" Color="{DynamicResource SecondaryColor}"/>
     <SolidColorBrush x:Key="FontColor" Color="{DynamicResource DefaultFontColor}"/>
+    <SolidColorBrush x:Key="FontDark" Color="{DynamicResource FontColorDark}"/>
     <SolidColorBrush x:Key="DefaultButtonBackground" Color="{DynamicResource DefaultButtonBackgroundColor}"/>
     <SolidColorBrush x:Key="DefaultButtonBackgroundHover" Color="{DynamicResource DefaultButtonBackgroundHoverColor}"/>
     <SolidColorBrush x:Key="ButtonColor" Color="{DynamicResource ButtonColorColor}"/>
@@ -121,6 +123,33 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource DeleteButtonColorHover}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="{x:Type Button}" x:Key="InvisibleButton" BasedOn="{StaticResource ButtonBase}">
+        <Setter Property="Background" Value="#00000000" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border Background="#00000000" x:Name="BtnBorder"  Padding="{TemplateBinding Padding}" CornerRadius="18" BorderBrush="{DynamicResource FontColor}" BorderThickness="0">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource FontDark}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type Button}">
+                            <Border Background="#00000000" x:Name="BtnBorder"  Padding="{TemplateBinding Padding}" CornerRadius="18" BorderBrush="{DynamicResource FontDark}" BorderThickness="0">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -420,7 +449,7 @@
 
     <Style TargetType="TabItem">
         <Setter Property="FontSize" Value="14"/>
-        <Setter Property="FontFamily" Value="Montserrat Medium"/>
+        <Setter Property="FontFamily" Value="Bahnschrift SemiBold SemiCondensed"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TabItem">
@@ -474,10 +503,11 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ListViewItem">
                     <Border x:Name="bd" CornerRadius="10" Margin="0,0,0,2" Padding="3,5,3,5">
-                        <Label Height="25"
-                            Content="{TemplateBinding Content}"
-                            ContentTemplate="{TemplateBinding ContentTemplate}"
-                            FontFamily="Montserrat"/>
+                        <Label Height="auto"
+                               Content="{TemplateBinding Content}"
+                               ContentTemplate="{TemplateBinding ContentTemplate}"
+                               HorizontalContentAlignment="Stretch"
+                               VerticalContentAlignment="Stretch"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="False">

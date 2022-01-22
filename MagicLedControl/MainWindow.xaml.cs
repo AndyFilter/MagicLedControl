@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MagicLedControl.PluginLib;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -46,12 +47,14 @@ namespace MagicLedControl
                     devicesBox.SelectedIndex = 0;
                     PingAllDevices();
                 }
-                if (currentUserData.SavedColor.Count > 0)
+                if (currentUserData.SavedColors.Count > 0)
                 {
                     ReloadSavedColorsBox();
                 }
             }
             InitializeDevice();
+
+            LoadPlugins();
         }
 
         private async void PingAllDevices()
@@ -65,12 +68,60 @@ namespace MagicLedControl
             }
         }
 
+        private void LoadPlugins()
+        {
+            Console.WriteLine("Started plugin app..");
+            try
+            {
+                PluginLoader loader = new PluginLoader();
+                loader.LoadPlugins();
+            }
+            catch (Exception e)
+            {
+                Trace.WriteLine(string.Format("Plugins couldn't be loaded: {0}", e.Message));
+                Trace.WriteLine("Press any key to exit...");
+                Environment.Exit(0);
+            }
+            try
+            {
+                foreach (var plugin in PluginLoader.Plugins)
+                {
+                    Structs.PluginInfo userDataPlugin = null;
+                    if (currentUserData.Plugins.Exists(p => p.Name == plugin.Name))
+                        userDataPlugin = currentUserData.Plugins.First(p => p.Name == plugin.Name);
+                    if (plugin != null)
+                    {
+                        if (userDataPlugin != null)
+                        {
+                            userDataPlugin.Description = plugin.Description;
+                            var newPluginItem = new Controls.PluginListItem(userDataPlugin);
+                            pluginList.Items.Add(newPluginItem);
+                        }
+                        else
+                        {
+                            userDataPlugin = new Structs.PluginInfo(plugin.Name, plugin.Description, true);
+                            currentUserData.Plugins.Add(userDataPlugin);
+                            var newPluginItem = new Controls.PluginListItem(userDataPlugin);
+                            pluginList.Items.Add(newPluginItem);
+                        }
+                        if (userDataPlugin.IsEnabled)
+                            plugin.Begin("Empty", deviceController);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Trace.WriteLine(string.Format("Caught exception: {0}", e.Message));
+                throw e;
+            }
+        }
+
         private void ReloadSavedColorsBox()
         {
             colorSelectBox.Items.Clear();
             colorSelectBox.ItemsSource = null;
             //Trace.WriteLine("Children in CB: " + colorSelectBox.Items.Count);
-            foreach (var color in currentUserData.SavedColor)
+            foreach (var color in currentUserData.SavedColors)
             {
                 var label = new Label();
                 label.Content = color.Key.ToString();
@@ -163,6 +214,9 @@ namespace MagicLedControl
                 SetControllerData();
             }, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
 
+            deviceController.messageSent += delegate () {
+                lastSuccessfulMessageTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+            };
             await Task.Delay(1000);
         }
 
@@ -287,19 +341,19 @@ namespace MagicLedControl
             if (colorNameBox.Text.Length < 1) return;
             var currentColor = Utils.ColorToSimpleColor(lastSelectedColor);
             currentColor.A = 255;
-            currentUserData.SavedColor[colorNameBox.Text] = currentColor;
+            currentUserData.SavedColors[colorNameBox.Text] = currentColor;
 
             Utils.SaveUserData(currentUserData);
 
             ReloadSavedColorsBox();
-            colorSelectBox.SelectedIndex = currentUserData.SavedColor.ToList().IndexOf(new KeyValuePair<string, Structs.SimpleColor>(colorNameBox.Text, currentColor));
+            colorSelectBox.SelectedIndex = currentUserData.SavedColors.ToList().IndexOf(new KeyValuePair<string, Structs.SimpleColor>(colorNameBox.Text, currentColor));
         }
 
         private void DeleteColorClicked(object sender, RoutedEventArgs e)
         {
             var selectedLabel = (colorSelectBox.SelectedItem as Label);
             if (selectedLabel == null || selectedLabel.DataContext == null) return;
-            currentUserData.SavedColor.Remove(((selectedLabel.DataContext) as KeyValuePair<string, Structs.SimpleColor>?).Value.Key);
+            currentUserData.SavedColors.Remove(((selectedLabel.DataContext) as KeyValuePair<string, Structs.SimpleColor>?).Value.Key);
 
             Utils.SaveUserData(currentUserData);
             ReloadSavedColorsBox();

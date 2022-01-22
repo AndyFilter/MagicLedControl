@@ -5,6 +5,7 @@ using System.Net.NetworkInformation;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Media;
+using MagicLedControl.PluginLib;
 
 namespace MagicLedControl
 {
@@ -14,15 +15,15 @@ namespace MagicLedControl
         {
             try
             {
-                if (!Directory.Exists(Structs.UserDataPath.FullName))
+                if (!Directory.Exists(Constants.UserDataPath.FullName))
                 {
-                    Directory.CreateDirectory(Structs.UserDataPath.FullName);
+                    Directory.CreateDirectory(Constants.UserDataPath.FullName);
                 }
-                if (!File.Exists(Structs.UserDataFile))
+                if (!File.Exists(Constants.UserDataFile))
                 {
-                    File.Create(Structs.UserDataFile);
+                    File.Create(Constants.UserDataFile);
                 }
-                var fileText = File.ReadAllText(Structs.UserDataFile, Encoding.UTF8);
+                var fileText = File.ReadAllText(Constants.UserDataFile, Encoding.UTF8);
                 var data = JsonSerializer.Deserialize<Structs.UserData>(fileText);
                 data.Devices.ForEach(d => d.PingOutcome = 0);
                 return data;
@@ -40,17 +41,17 @@ namespace MagicLedControl
             Trace.WriteLine("Saving Data");
             try
             {
-                if (!Directory.Exists(Structs.UserDataPath.FullName))
+                if (!Directory.Exists(Constants.UserDataPath.FullName))
                 {
-                    Directory.CreateDirectory(Structs.UserDataPath.FullName);
+                    Directory.CreateDirectory(Constants.UserDataPath.FullName);
                 }
-                if (!File.Exists(Structs.UserDataFile))
+                if (!File.Exists(Constants.UserDataFile))
                 {
-                    File.Create(Structs.UserDataFile);
+                    File.Create(Constants.UserDataFile);
                 }
 
                 Trace.WriteLine("Deserialized user data: " + JsonSerializer.Serialize(userData));
-                File.WriteAllText(Structs.UserDataFile, JsonSerializer.Serialize(userData));
+                File.WriteAllText(Constants.UserDataFile, JsonSerializer.Serialize(userData));
                 Trace.WriteLine("Data Saved");
             }
             catch (Exception ex)

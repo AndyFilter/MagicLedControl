@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MagicLedControl.PluginLib;
+using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -27,7 +28,7 @@ namespace MagicLedControl.Controls
             topTabGrid.MouseLeftButtonDown += MouseTabDrag;
 
             if (GatewayAddress == null)
-                MessageBox.Show("There was an error! Make sure you are connected to a internet");
+                MessageBox.Show("There was an error! Make sure you are connected to the internet");
         }
 
         private void MouseTabDrag(object sender, MouseButtonEventArgs e)

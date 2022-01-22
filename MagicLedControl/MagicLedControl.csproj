@@ -13,6 +13,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="DeviceController.cs" />
+    <Compile Remove="MagicStructs.cs" />
+    <Compile Remove="MagicUtils.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="MagicLight.ico" />
   </ItemGroup>
 
@@ -29,6 +35,10 @@
 
   <ItemGroup>
     <PackageReference Include="PixiEditor.ColorPicker" Version="3.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MagicLedControl.PluginLib\MagicLedControl.PluginLib.csproj" />
   </ItemGroup>
 
 </Project>

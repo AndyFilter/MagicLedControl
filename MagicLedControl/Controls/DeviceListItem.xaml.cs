@@ -1,4 +1,5 @@
-﻿using System.Windows.Controls;
+﻿using MagicLedControl.PluginLib;
+using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace MagicLedControl.Controls
