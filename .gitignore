@@ -330,8 +330,11 @@ ASALocalRun/
 # MFractors (Xamarin productivity tool) working folder
 .mfractor/
 
+#Custom Backups
+*.rar
+
 # Local History for Visual Studio
-.localhistory/
 MagicLedControl/MagicUtils.cs
 MagicLedControl/DeviceController.cs
 MagicLedControl/MagicStructs.cs
+.localhistory/
