@@ -94,12 +94,14 @@ namespace MagicLedControl
                         if (userDataPlugin != null)
                         {
                             userDataPlugin.Description = plugin.Description;
+                            userDataPlugin.Plugin = plugin;
                             var newPluginItem = new Controls.PluginListItem(userDataPlugin);
                             pluginList.Items.Add(newPluginItem);
                         }
                         else
                         {
                             userDataPlugin = new Structs.PluginInfo(plugin.Name, plugin.Description, true);
+                            userDataPlugin.Plugin = plugin;
                             currentUserData.Plugins.Add(userDataPlugin);
                             var newPluginItem = new Controls.PluginListItem(userDataPlugin);
                             pluginList.Items.Add(newPluginItem);
@@ -173,12 +175,14 @@ namespace MagicLedControl
             if (cp == null)
                 return;
             var currentColor = Utils.ColorFromNotifColor(cp.Color);
-            currentColor = MagicUtils.ApplyBrightnessToColor(currentColor);//This is trhe way the device sends and receives colors, just multiplies them by brightness (in this case by Alpha);
+            currentColor = MagicUtils.ApplyBrightnessToColor(currentColor);//This is the way the device sends and receives colors, just multiplies them by brightness (in this case by Alpha);
             if (lastSelectedColor != currentColor)
             {
                 Trace.WriteLine("Color changed to:" + currentColor.ToString());
-                lastSelectedColor = currentColor;
+                deviceController.colorUpdated -= DeviceController_colorUpdated;
                 deviceController.SetColor(currentColor);
+                deviceController.colorUpdated += DeviceController_colorUpdated;
+                lastSelectedColor = currentColor;
                 isDisco = false;
                 isCustomFunction = false;
                 DiscoButton.Style = Resources["NormalButton"] as Style; //This code might be a bit higher, but it doesnt really matter, and I'm already high enough;
@@ -217,7 +221,15 @@ namespace MagicLedControl
             deviceController.messageSent += delegate () {
                 lastSuccessfulMessageTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             };
+            deviceController.colorUpdated += DeviceController_colorUpdated;
             await Task.Delay(1000);
+        }
+
+        private void DeviceController_colorUpdated(Color color)
+        {
+            lastSelectedColor = color;
+            isDisco = false;
+            isCustomFunction = false;
         }
 
         private async void SetControllerData()

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -47,8 +48,8 @@ namespace MagicLedControl.Controls
 
         private void OpenSettingsClicke(object sender, RoutedEventArgs e)
         {
-            if (pluginInfo == null || !pluginInfo.IsEnabled) return;
-            pluginInfo.Plugin?.SettingsClicked();
+            if (pluginInfo == null || pluginInfo.Plugin == null || !pluginInfo.IsEnabled) return;
+            pluginInfo.Plugin.SettingsClicked();
         }
     }
 }

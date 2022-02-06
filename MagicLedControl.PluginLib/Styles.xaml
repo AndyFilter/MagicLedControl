@@ -1,6 +1,6 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:local="clr-namespace:DialogueMaker">
+                    xmlns:local="clr-namespace:MagicLedControl.PluginLib">
 
     <Color x:Key="ValidationErrorColor">#f44336</Color>
     <SolidColorBrush x:Key="ValidationErrorBrush" Color="{DynamicResource ValidationErrorColor}"/>
@@ -132,7 +132,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type Button}">
-                    <Border Background="#00000000" x:Name="BtnBorder"  Padding="{TemplateBinding Padding}" CornerRadius="18" BorderBrush="{DynamicResource FontColor}" BorderThickness="0">
+                    <Border Background="{TemplateBinding Background}" x:Name="BtnBorder"  Padding="{TemplateBinding Padding}" CornerRadius="18" BorderBrush="{DynamicResource FontColor}" BorderThickness="0">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                 </ControlTemplate>
@@ -144,7 +144,7 @@
                 <Setter Property="Template">
                     <Setter.Value>
                         <ControlTemplate TargetType="{x:Type Button}">
-                            <Border Background="#00000000" x:Name="BtnBorder"  Padding="{TemplateBinding Padding}" CornerRadius="18" BorderBrush="{DynamicResource FontDark}" BorderThickness="0">
+                            <Border Background="{TemplateBinding Background}" x:Name="BtnBorder"  Padding="{TemplateBinding Padding}" CornerRadius="18" BorderBrush="{DynamicResource FontDark}" BorderThickness="0">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                         </ControlTemplate>

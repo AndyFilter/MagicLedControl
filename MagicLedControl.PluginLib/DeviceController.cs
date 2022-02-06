@@ -14,7 +14,9 @@ namespace MagicLedControl.PluginLib
         string Address = "";
         static int Port = 5577;
         public event Notif messageSent;
+        public event ColorUpdate colorUpdated;
         public delegate void Notif();
+        public delegate void ColorUpdate(Color color);
 
         public async Task<bool> Connect(string server)
         {
@@ -96,7 +98,7 @@ namespace MagicLedControl.PluginLib
                 await stream.WriteAsync(dataWithChecksum, 0, dataWithChecksum.Length);
 
                 Trace.WriteLine(($"Sent: {BitConverter.ToString(dataWithChecksum)}"));
-                messageSent.Invoke();
+                messageSent?.Invoke();
                 return true;
             }
             else
@@ -130,10 +132,13 @@ namespace MagicLedControl.PluginLib
 
         public async void SetColor(Color color)
         {
-            byte[] message = Commands.SET_COLOR;
+            byte[] message = new byte[7];
+            Commands.SET_COLOR.CopyTo(message, 0);
             message[1] = color.R;
             message[2] = color.G;
             message[3] = color.B;
+            if(colorUpdated != null)
+                colorUpdated.Invoke(color);
 
             await Send(message);
             //await Task.Delay(200);

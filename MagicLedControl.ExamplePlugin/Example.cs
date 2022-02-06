@@ -13,11 +13,12 @@ namespace MagicLedControl.ExamplePlugin
         public DeviceController deviceController;
         public bool isEnabled = true;
         public bool isSettingsWindowOpen = false;
+        public Control.ExampleUserControl userSettings = null;
         public string Description
         {
             get
             {
-                return "Gets a string as parameter and returns the string length in characters.";
+                return "Set a Red or Green color of your leds with just ONE button press!";
             }
         }
 
@@ -41,7 +42,21 @@ namespace MagicLedControl.ExamplePlugin
 
         public void SettingsClicked()
         {
+            Trace.WriteLine("Settings Opened");
             isSettingsWindowOpen = !isSettingsWindowOpen;
+            if (userSettings == null || !userSettings.IsLoaded)
+            {
+                isSettingsWindowOpen = true;
+                userSettings = new Control.ExampleUserControl(deviceController);
+            }
+            if (isSettingsWindowOpen)
+            {
+                userSettings.Show();
+            }
+            else
+            {
+                userSettings.Hide();
+            }
         }
     }
 }

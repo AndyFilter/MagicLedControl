@@ -1,0 +1,30 @@
+﻿<Window x:Class="MagicLedControl.ExamplePlugin.Control.ExampleUserControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:MagicLedControl.ExamplePlugin.Control"
+             mc:Ignorable="d" 
+             d:DesignHeight="120" d:DesignWidth="100" WindowStyle="ToolWindow" HorizontalAlignment="Left" VerticalAlignment="Top" ResizeMode="NoResize" Width="100" Height="120">
+    <!-- You can create settings menu this way or the same way that for example "AddDeviceWindow.xaml" is created. Method used here is simpler, so I'm using it as an example -->
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary>
+                    <ResourceDictionary.MergedDictionaries>
+                        <ResourceDictionary Source="pack://application:,,,/MagicLedControl.PluginLib;component/Styles.xaml"/>
+                    </ResourceDictionary.MergedDictionaries>
+                </ResourceDictionary>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <Grid.Background>
+            <SolidColorBrush Color="{DynamicResource BackgroundColor}"/>
+        </Grid.Background>
+        <StackPanel>
+            <Button Content="Green" Style="{DynamicResource NormalButton}" Margin="0,0,0,5" Click="GreenColorClicked" />
+            <Button Content="Red" Style="{DynamicResource DeleteButton}" Click="RedColorClicked"  />
+        </StackPanel>
+    </Grid>
+</Window>
