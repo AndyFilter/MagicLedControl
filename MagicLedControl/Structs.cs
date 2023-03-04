@@ -1,7 +1,5 @@
 ﻿using MagicLedControl.PluginLib;
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text.Json.Serialization;
 
 namespace MagicLedControl
@@ -46,14 +44,22 @@ namespace MagicLedControl
 
         public class SimpleColor
         {
-            public int R { get; set; }
-            public int G { get; set; }
-            public int B { get; set; }
-            public int A { get; set; }
+            public int R { get; set; } = 0;
+            public int G { get; set; } = 0;
+            public int B { get; set; } = 0;
+            public int A { get; set; } = 0;
 
             public SimpleColor(int r, int g, int b, int a)
             {
                 R = r; G = g; B = b; A = a;
+            }
+
+            public SimpleColor()
+            {
+                R = 0;
+                G = 0;
+                B = 0;
+                A = 0;
             }
         }
     }

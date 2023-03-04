@@ -1,16 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace MagicLedControl.Controls
 {
@@ -37,7 +26,7 @@ namespace MagicLedControl.Controls
         private void pluginStateChanged(object sender, RoutedEventArgs e)
         {
             CheckBox? cb = sender as CheckBox;
-            if(cb != null && pluginInfo != null && cb.IsChecked != null)
+            if (cb != null && pluginInfo != null && cb.IsChecked != null)
             {
                 pluginInfo.IsEnabled = cb.IsChecked.Value;
                 pluginInfo.Plugin?.ChangeState(cb.IsChecked.Value);

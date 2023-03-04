@@ -51,6 +51,7 @@ namespace MagicLedControl.Controls
             controllersbox.Items.Clear();
             DoubleAnimation animation = new DoubleAnimation((devicesScanned / 255d), TimeSpan.FromMilliseconds(20));
             ipScannedProgressSeparator.BeginAnimation(ProgressBar.ValueProperty, animation);
+            devsFoundLab.Foreground = (SolidColorBrush)this.FindResource("FontColor");//(SolidColorBrush)Application.Current.Resources["FontColor"];
             new Thread(() =>
             {
                 Thread.CurrentThread.IsBackground = true;
@@ -69,6 +70,8 @@ namespace MagicLedControl.Controls
             }
             await Task.WhenAll(tasks);
             isScanning = false;
+            await Task.Delay(150);
+            Application.Current.Dispatcher.Invoke(() => { devsFoundLab.Foreground = (SolidColorBrush)this.FindResource("SecondaryLight"); });
             //stopwatch.Stop();
             //Trace.WriteLine($"Elapsed Discovery Time is {stopwatch.ElapsedMilliseconds} ms");
         }
@@ -85,8 +88,8 @@ namespace MagicLedControl.Controls
                 var pingOut = await MagicUtils.FullPingDeviceAsync(address);
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    Stopwatch stopwatch = new Stopwatch();
-                    stopwatch.Start();
+                    //Stopwatch stopwatch = new Stopwatch();
+                    //stopwatch.Start();
                     devicesScanned++;
                     if (pingOut.Item1 == MagicStructs.PingOutcome.Controller)
                     {

@@ -218,7 +218,8 @@ namespace MagicLedControl
                 SetControllerData();
             }, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
 
-            deviceController.messageSent += delegate () {
+            deviceController.messageSent += delegate ()
+            {
                 lastSuccessfulMessageTime = DateTimeOffset.Now.ToUnixTimeMilliseconds();
             };
             deviceController.colorUpdated += DeviceController_colorUpdated;
@@ -396,6 +397,15 @@ namespace MagicLedControl
             DiscoButton.Style = (isDisco ? Resources["DeleteButton"] : Resources["NormalButton"]) as Style;
             if (isDisco)
             {
+                // CUSTOM FUNC TEST:
+                //MagicStructs.Function customFunc = new MagicStructs.Function();
+                //customFunc.colors.Add(Color.FromRgb(255, 0, 0));
+                //customFunc.colors.Add(Color.FromRgb(0, 255, 0));
+                //customFunc.colors.Add(Color.FromRgb(0, 0, 255));
+                //customFunc.type = MagicStructs.FunctionType.Gradual;
+                //customFunc.speed = 30;
+                //deviceController.SetCustomFunction(customFunc);
+
                 await deviceController.Send(Commands.SET_DISCO_FUNCTION);
                 //await Task.Delay(200);
                 //await deviceController.Send(Commands.SET_DISCO_FUNCTION);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -69,22 +70,21 @@ namespace MagicLedControl.PluginLib
             }
         }
 
-        public static async Task<(bool, string)> PingDevice(string address)//Returns true if it is a LED controller
+        public static async Task<(bool, string)> PingDevice(string address) // Returns true if it is a LED controller, false otherwise
         {
             return await new Pinger(address).Ping();
         }
 
-        public void Send(string message)
+        // Automatically appends the checksum at the end (creating a new buffer of size one bigger)
+        public async Task<bool> Send(string message)
         {
-            if (client.Connected && client != null && stream != null)
-            {
-                Byte[] data = System.Text.Encoding.ASCII.GetBytes(message);
-                byte[] dataWithChecksum = new byte[data.Length + 1];
-                data.CopyTo(dataWithChecksum, 0);
-                dataWithChecksum[dataWithChecksum.Length - 1] = MagicUtils.CalculateChecksum(data); //Always last byte of the message is a checksum
-                //stream.Write(dataWithChecksum, 0, dataWithChecksum.Length);
-                Trace.WriteLine(("Sent: {0}", message));
-            }
+            Byte[] data = System.Text.Encoding.ASCII.GetBytes(message);
+            return await Send(data);
+            //byte[] dataWithChecksum = new byte[data.Length + 1];
+            //data.CopyTo(dataWithChecksum, 0);
+            //dataWithChecksum[dataWithChecksum.Length - 1] = MagicUtils.CalculateChecksum(data); //Always last byte of the message is a checksum
+            ////stream.Write(dataWithChecksum, 0, dataWithChecksum.Length);
+            //Trace.WriteLine(("Sent: {0}", message));
         }
 
         public async Task<bool> Send(byte[] message)
@@ -121,11 +121,10 @@ namespace MagicLedControl.PluginLib
 
             if (stream != null)
             {
-                stream.ReadTimeout = 500;
-                var data = new byte[4];
+                stream.ReadTimeout = 500; // ?
 
-                await stream.ReadAsync(data);
-                Trace.WriteLine("Received: " + BitConverter.ToString(data) + " after changing the power state");
+                Trace.WriteLine("(On/Off) available: " + client.Available);
+                //Trace.WriteLine("Received: " + BitConverter.ToString(data) + " after changing the power state");
             }
             return;
         }
@@ -141,6 +140,8 @@ namespace MagicLedControl.PluginLib
                 colorUpdated.Invoke(color);
 
             await Send(message);
+            //var data = new byte[25];
+            //await stream.ReadAsync(data, 0, data.Length);
             //await Task.Delay(200);
             //await Send(message);
         }
@@ -149,35 +150,23 @@ namespace MagicLedControl.PluginLib
         {
             try
             {
-                if (stream != null)
-                    await stream.FlushAsync();
+                if(stream != null) // Clear the buffer (flush doesnt work)
+                    EmptyBuffer();
+
                 if (client == null || !client.Connected)
-                {
                     return null;
-                    //try
-                    //{
-                    //    await Connect(Address);
-                    //}
-                    //catch (Exception ex)
-                    //{
-                    //    Trace.WriteLine(ex);
-                    //    return null;
-                    //}
-                    //if (client != null && client.Connected)
-                    //    stream = client.GetStream();
-                    //else
-                    //    return null;
-                }
 
                 var res = await Send(Commands.REQUEST_DATA);
 
                 if (!res)
                     return null;
 
-                await Task.Delay(200);
+                await Task.Delay(20);
 
                 var data = new byte[14];
                 Int32 bytes = await stream.ReadAsync(data, 0, data.Length);
+
+                Trace.WriteLine("got " + bytes + " bytes" + ". available: " + client.Available);
 
                 var controller = new MagicStructs.Controller();
                 Color dataColor;
@@ -198,16 +187,41 @@ namespace MagicLedControl.PluginLib
             catch (Exception ex)
             {
                 return null;
-                Trace.WriteLine(ex.Message);
+                //Trace.WriteLine(ex.Message);
             }
         }
 
-        public void SetCustomFunction(MagicStructs.Function customFunc)
+        // Function should technically work
+        public async void SetCustomFunction(MagicStructs.Function customFunc)
         {
-            var byteColors = new byte[16];
-            foreach (Color color in customFunc.colors)
+            var byteColors = new byte[64];
+            byte[] message = new byte[Commands.SET_CUSTOM_FUNCTION.Length];
+            Commands.SET_CUSTOM_FUNCTION.CopyTo(message, 0);
+            for (int i = 0; i < customFunc.colors.Count; i++)
             {
-                //TO BE IMPLEMENTED!
+                byteColors[i * 4] = customFunc.colors[i].R;
+                byteColors[i * 4 + 1] = customFunc.colors[i].G;
+                byteColors[i * 4 + 2] = customFunc.colors[i].B;
+                // Leave the 4th byte for "White" colors
+            }
+
+            // First byte is 0x51 or smth
+            int base_offset = 1;
+            byteColors.CopyTo(message, 1);
+
+            message[base_offset + 16 * 4] = (byte)(32 - customFunc.speed);
+            message[base_offset + 16 * 4 + 1] = (byte)(0x3A + customFunc.type); //What do you want me to say? I didnt make this ^@#$ up ¯\_(--)_/¯
+
+            await Send(message);
+        }
+
+        // This func assumes client and stream are not NULL!
+        private async void EmptyBuffer()
+        {
+            if (client != null && client.Connected && client.Available > 0)
+            {
+                var _temp = new byte[client.Available];
+                await stream.ReadAsync(_temp, 0, _temp.Length);
             }
         }
 
@@ -222,9 +236,9 @@ namespace MagicLedControl.PluginLib
             {
                 this.address = address;
 
-                udpClient = new UdpClient(address, UDP_PORT);//This line establishes the connection
+                udpClient = new UdpClient(address, UDP_PORT); //This line establishes the connection
                 udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                Trace.WriteLine("Commecting to: " + address);
+                Trace.WriteLine("Connecting to: " + address);
                 udpEndPoint = new IPEndPoint(IPAddress.Parse(address), UDP_PORT);
             }
 
@@ -235,7 +249,7 @@ namespace MagicLedControl.PluginLib
                     if (!udpClient.Client.Connected) return (false, "");
                     var message = System.Text.Encoding.Default.GetBytes(Commands.DISCOVERY_MESSAGE);
 
-                    udpClient.Send(message, message.Length);
+                    await udpClient.SendAsync(message, message.Length);
                     udpClient.Client.ReceiveTimeout = 800;//works for me, but with shitty wifi or something might not be so good
                     byte[] data = udpClient.Receive(ref udpEndPoint); //NOT ASYNC
                     string response = System.Text.Encoding.ASCII.GetString(data, 0, data.Length);
@@ -243,7 +257,7 @@ namespace MagicLedControl.PluginLib
 
                     udpClient.Close();
 
-                    if (response.Contains("AK001-ZJ2101"))
+                    if (response.Contains("AK001-ZJ")) // The full return value for one of the controllers is "AK001-ZJ2101" but newer versions will use different endings
                     {
                         var macAddress = response.Split(',')[1];
                         Trace.WriteLine($"Mac address: {macAddress}");
